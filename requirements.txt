@@ -1,0 +1,2 @@
+tensorflow==2.3.0
+lightgbm==3.1.1
