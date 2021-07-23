@@ -1,23 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[9]:
-
-
-# -*- coding: utf-8 -*-
 import io
-from tqdm.auto import tqdm
-
-from tensorflow.keras.models import load_model
 
 import os
 import pickle
 import sys
 import warnings
-from glob import glob
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pandas.tseries.offsets as offsets
@@ -32,13 +19,9 @@ from sklearn.ensemble import (
     RandomForestRegressor,
 )
 from sklearn.metrics import accuracy_score, mean_squared_error
-from tqdm.auto import tqdm
 
 import datetime as dt
 from datetime import timedelta
-
-import tensorflow as tf
-
 
 class JpCalendar(AbstractHolidayCalendar):
     rules = [
@@ -197,17 +180,6 @@ class ScoringService(object):
             cls.dfs = {}
         for k, v in inputs.items():
             cls.dfs[k] = pd.read_csv(v)
-            # DataFrameのindexを設定します。
-            #if k == "stock_price":
-            #    cls.dfs[k].loc[:, "date"] = pd.to_datetime(
-            #        cls.dfs[k].loc[:, "EndOfDayQuote Date"]
-            #    )
-                #cls.dfs[k].set_index("datetime", inplace=True)
-            #elif k in ["stock_fin", "stock_fin_price", "stock_labels"]:
-            #    cls.dfs[k].loc[:, "date"] = pd.to_datetime(
-            #        cls.dfs[k].loc[:, "base_date"]
-            #    )
-                #cls.dfs[k].set_index("datetime", inplace=True)
         return cls.dfs
 
     @classmethod
@@ -229,7 +201,6 @@ class ScoringService(object):
             with open(os.path.join(model_path, 'model_jpx_low.pkl'), 'rb') as g:
                 cls.model_l = pickle.load(g)
 
-    #        cls.model = load_model(os.path.join(model_path, 'model_jpx.h5'))
 
             return True
         
@@ -239,8 +210,6 @@ class ScoringService(object):
 
     @classmethod
     def predict(cls, inputs, labels=None, codes=None, start_dt=TEST_START):
-
-#        cls.get_inputs("..")
         
         mil = cls.mil
         tse = cls.tse
@@ -252,14 +221,12 @@ class ScoringService(object):
         sl = cls.dfs['stock_list']
         sp = cls.dfs['stock_price']
         sf = cls.dfs['stock_fin']
-        #slb = cls.dfs['stock_labels']
         
         m_conf = pd.read_csv("./m_forecast_confidence.csv")
         m_qs = pd.read_csv("./m_qsales.csv")
         m_soyaku = pd.read_csv("./m_soyaku.csv")
         m_yutai = pd.read_csv("./m_yutai.csv")
         
-        #####################################
         sl = sl.rename(columns={
                         "prediction_target": "target", 
                         "Local Code": "code",
@@ -327,13 +294,6 @@ class ScoringService(object):
                         "Forecast_Dividend AnnualDividendPerShare": "adiv_f",
                        })
 
-        #slb = slb.rename(columns={
-        #                "base_date": "date",
-        #                "Local Code": "code",
-        #               })
-
-        #slb.loc[:, "date"] = pd.to_datetime(slb.loc[:, "date"])
-
         sp.loc[:, "date"] = pd.to_datetime(sp.loc[:, "date"])
         sf.loc[:, "date"] = pd.to_datetime(sf.loc[:, "date"])
         sf.loc[:, "divdt"] = pd.to_datetime(sf.loc[:, "divdt"])
@@ -351,17 +311,6 @@ class ScoringService(object):
         sp = sp.sort_values(['code', 'date'])
 
         
-        #slb["md"] = slb[slb["date"]<"2020-01-01"]["date"].dt.month * 100 + slb[slb["date"]<"2020-01-01"]["date"].dt.day
-        #slbmd = slb.groupby("md")[["label_high_20","label_low_20"]].mean().reset_index()
-
-        #slbmd = slbmd.rename(columns={
-        #                        "label_high_20": "md_high_20",
-        #                        "label_low_20": "md_low_20",
-        #                       })
-
-        #slb = pd.merge(slb,slbmd, on=["md"], how="left")
-
-
         sf = pd.merge(sf,m_qs, on=["code"], how="left")
         
         sfan = sf[["code","period","rtype"]].drop_duplicates()
@@ -647,10 +596,6 @@ class ScoringService(object):
         sa.loc[(sa["kenri_f"]==0)&(sa["kenriochi_f"]==0)&(sa["post_kenriochi_f"]==0), "yutai"] = 0
         sa.loc[(sa["kenri_f"]==0)&(sa["kenriochi_f"]==0)&(sa["post_kenriochi_f"]==0), "yutai"] = 0
 
-#        sa.loc[(sa["post_kenriochi_f"]==0), "md_high_20"] = 0
-#        sa.loc[(sa["post_kenriochi_f"]==0), "md_low_20"] = 0
-
-        
         
         sa = sa[sa["target"]==1]
         
@@ -688,19 +633,6 @@ class ScoringService(object):
                 break
 
 
-#        sa["opeinr_akakuro"] = np.where((sa["opein"] * sa.shift(1)["opein"]<0), 1, 0)
-#        sa["opeinr_akaaka"] = np.where((sa["opein"] < 0) & (sa.shift(1)["opein"] < 0), 1, 0)
-#        sa["opeinr_f_akakuro"] = np.where((sa["opein_f"] * sa.shift(1)["opein_f"]<0), 1, 0)
-#        sa["opeinr_f_akaaka"] = np.where((sa["opein_f"] < 0) & (sa.shift(1)["opein_f"] < 0), 1, 0)
-#        sa["ordinr_akakuro"] = np.where((sa["ordin"] * sa.shift(1)["ordin"]<0), 1, 0)
-#        sa["ordinr_akaaka"] = np.where((sa["ordin"] < 0) & (sa.shift(1)["ordin"] < 0), 1, 0)
-#        sa["ordinr_f_akakuro"] = np.where((sa["ordin_f"] * sa.shift(1)["ordin_f"]<0), 1, 0)
-#        sa["ordinr_f_akaaka"] = np.where((sa["ordin_f"] < 0) & (sa.shift(1)["ordin_f"] < 0), 1, 0)
-#        sa["netinr_akakuro"] = np.where((sa["netin"] * sa.shift(1)["netin"]<0), 1, 0)
-#        sa["netinr_akaaka"] = np.where((sa["netin"] < 0) & (sa.shift(1)["netin"] < 0), 1, 0)
-#        sa["netinr_f_akakuro"] = np.where((sa["netin_f"] * sa.shift(1)["netin_f"]<0), 1, 0)
-#        sa["netinr_f_akaaka"] = np.where((sa["netin_f"] < 0) & (sa.shift(1)["netin_f"] < 0), 1, 0)
-
         sa["opeinr_akakuro"] = np.where((sa["opein_aad_t"] * sa.groupby("code").shift(1)["opein_aad_t"]<0), 1, 0)
         sa["opeinr_akaaka"] = np.where((sa["opein_aad_t"] < 0) & (sa.groupby("code").shift(1)["opein_aad_t"] < 0), 1, 0)
         sa["ordinr_akakuro"] = np.where((sa["ordin_aad_t"] * sa.groupby("code").shift(1)["ordin_aad_t"]<0), 1, 0)
@@ -713,8 +645,6 @@ class ScoringService(object):
         
         sa["punit_ch_date"] = np.where(sa["date"]>="2018-10-01", 1, 0)
 
-
-        
         
         sa = sa[sa["date"]>=cls.TEST_START]
 
@@ -725,21 +655,16 @@ class ScoringService(object):
                 "opeinr_akakuro", "opeinr_akaaka", "ordinr_akakuro", "ordinr_akaaka", "netinr_akakuro", "netinr_akaaka",
                 "lc_young",
                 "lc_mature",
-                "noresult", "nofrct","ayld_t_ch",#"kenriyld",
+                "noresult", "nofrct","ayld_t_ch",
                 "yutai",
-                #"md_high_20", "md_low_20",
                 "kenri_f", "kenriochi_f","post_kenriochi_f",
                 "fore_conf",
                 "eclose",
-                #"eclose_ori_delta",
                 "punit_ch_date",
                 "eclose_ch_mean5", "eclose_ch_mean10",
                 "eclose_ch_1","eclose_ch_5","eclose_ch_10","eclose_ch_20", "eclose_ch_40", "eclose_ch_120",
                 "eclose_ch_sec", "vola_code",
-                #"eclose_ch_mid_macro",
                 "soyaku",
-                #"invcf_aad_ch",
-                #"EPS_ope_f","PER_ope_f",
                 "PER_sal_log_f",
                   "vola", "vol_ch", "jikaso_log","stop","window",
                  "section_First Section (Domestic)", "section_JASDAQ(Growth/Domestic)", "section_JASDAQ(Standard / Domestic)", "section_Mothers (Domestic)",
@@ -751,18 +676,10 @@ class ScoringService(object):
 
         x_col_h = x_col1_g + x_col1_h
         x_col_l = x_col1_g + x_col1_l
-        #sa[x_col_h] = sa[x_col_h].fillna(0)
-        #sa[x_col_l] = sa[x_col_l].fillna(0)
-        #print(len(sa[sa[x_col_h].isnull()]))
-        #print(len(sa[sa[x_col_l].isnull()]))
-        #print(sa[sa[x_col_h].isnull()])
 
-        
-        ################################
         df = sa.copy()
         
         try:
-#            pred = np.array(cls.model.predict(sa[x_col].values))
             pred_h = np.array(cls.model_h.predict(sa[x_col_h].values, num_iteration=cls.model_h.best_iteration))
             pred_l = np.array(cls.model_l.predict(sa[x_col_l].values, num_iteration=cls.model_l.best_iteration))
             pred = np.stack([pred_h,pred_l])
@@ -773,7 +690,6 @@ class ScoringService(object):
             df = pd.concat([df[["date","code"]], df2], axis=1)
         except Exception as e:
             raise ValueError("sa[x_col_h]", sa[x_col_h])
-#            raise ValueError("df", df[['code', 'label_high_20', 'label_low_20']])
             raise ValueError("pred", pred)
 
         df.set_index("date", inplace=True)
@@ -781,7 +697,6 @@ class ScoringService(object):
         
         try:
             output_columns = ['code', 'label_high_20', 'label_low_20']
-            #df.to_csv("out.csv", header=False, index=False, columns=output_columns)
             out = io.StringIO()
             df.to_csv(out, header=False, index=False, columns=output_columns)
         except Exception as e:
@@ -789,15 +704,6 @@ class ScoringService(object):
         
         return out.getvalue()
     
-
-
-# dataset_dir =".."
-# 
-# inputs = ScoringService.get_inputs(dataset_dir)
-# ScoringService.get_model()
-# ScoringService.predict(inputs)
-
-# In[ ]:
 
 
 
